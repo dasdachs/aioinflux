@@ -335,6 +335,26 @@ class InfluxDBClient:
                     self._check_error(chunk)
                     yield chunk
 
+
+        async def _chunked_to_dataframe(chuncked_generator)
+            """Quick function to turn a chuncked response to a DataFrame."""
+            df = pd.DataFrame()
+            for async for chunk in results:
+                columns = chunk["results"][0]["series"][0]["columns"]
+                rows = chunk["results"][0]["series"][0]["values"]
+                if not columns or not rows:
+                    continue
+                partial_df = pd.DataFrame(rows, columns=columns)
+                if df.empty:
+                    df = partial_df.copy()
+                    continue
+                df = df.append(partial_df, ignore_index=True)
+            if not 'time' in df.columns:
+                return df
+            df["time"] = pd.to_datetime(df["time"])
+            df.set_index("time", inplace=True)
+            return df
+
         if not self._session:
             await self.create_session()
 
@@ -352,8 +372,12 @@ class InfluxDBClient:
                 raise ValueError("Can't use cache w/ chunked queries")
             if self.mode != 'async':
                 raise ValueError("Can't use 'chunked' with non-async mode")
-            if self.output == 'json':
-                return _chunked_generator(url, data)
+            if self.output in ['json', 'dataframe']:
+                chunked =  _chunked_generator(url, data)
+                if self.output == 'json':
+                    return chuncked
+                else:
+                    return _chunked_to_dataframe(chuncked)
             raise ValueError(f"Chunked queries are not support with {self.output!r} output")
 
         key = f'aioinflux:{q}'
