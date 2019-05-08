@@ -18,7 +18,7 @@ def _serializer(series) -> pd.DataFrame:
     df = pd.DataFrame(series.get('values', []), columns=series['columns'])
     if 'time' not in df.columns:
         return df
-    df: pd.DataFrame = df.set_index(pd.to_datetime(df['time'])).drop('time', axis=1)
+    df: pd.DataFrame = df.set_index(pd.to_datetime(df['time']), inplace=True)
     df.index = df.index.tz_localize('UTC')
     df.index.name = None
     if 'tags' in series:
